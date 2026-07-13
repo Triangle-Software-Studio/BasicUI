@@ -42,12 +42,13 @@ void Panel::OnRender(TextGrid& grid) {
     if (!visible_) return;
     grid.DrawBox(bounds_, borderColor_, bgColor_);
     if (!title_.empty() && bounds_.w > 2) {
-        int titleX = bounds_.x + (bounds_.w - static_cast<int>(title_.size())) / 2;
+        int titleLen = static_cast<int>(TextGrid::Utf8CharCount(title_));
+        int titleX = bounds_.x + (bounds_.w - titleLen) / 2;
         if (titleX < bounds_.x + 1) titleX = bounds_.x + 1;
         int maxLen = bounds_.w - 2 - (titleX - bounds_.x - 1);
         if (maxLen < 0) maxLen = 0;
         std::string display = title_;
-        if (static_cast<int>(display.size()) > maxLen) display = display.substr(0, maxLen);
+        if (static_cast<int>(TextGrid::Utf8CharCount(display)) > maxLen) display = TextGrid::Utf8Substr(display, 0, maxLen);
         grid.PutString(titleX, bounds_.y, display, fgColor_, bgColor_);
     }
 }

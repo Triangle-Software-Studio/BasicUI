@@ -49,13 +49,14 @@ void ProgressBar::OnRender(TextGrid& grid) {
         std::ostringstream oss;
         oss << static_cast<int>(ratio * 100) << "%";
         std::string pct = oss.str();
-        int pctX = bounds_.x + (w - static_cast<int>(pct.size())) / 2;
+        int pctLen = static_cast<int>(TextGrid::Utf8CharCount(pct));
+        int pctX = bounds_.x + (w - pctLen) / 2;
         int pctY = bounds_.y + h / 2;
-        if (pctX >= bounds_.x && pctX + static_cast<int>(pct.size()) <= bounds_.x + w) {
-            for (size_t i = 0; i < pct.size(); ++i) {
-                int col = pctX + static_cast<int>(i) - bounds_.x;
+        if (pctX >= bounds_.x && pctX + pctLen <= bounds_.x + w) {
+            for (int i = 0; i < pctLen; ++i) {
+                int col = pctX + i - bounds_.x;
                 Color bg = (col < fill) ? fillColor : emptyColor;
-                grid.Put(pctX + static_cast<int>(i), pctY, pct[i], fgColor_, bg);
+                grid.Put(pctX + i, pctY, pct[static_cast<size_t>(i)], fgColor_, bg);
             }
         }
     }

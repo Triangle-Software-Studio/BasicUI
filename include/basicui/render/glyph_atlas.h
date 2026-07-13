@@ -11,6 +11,10 @@ struct FT_FaceRec_;
 
 namespace bui {
 
+// NOTE: GlyphAtlas is not thread-safe. All methods (including LoadFont,
+// GetGlyph, and destructor) must be called from the same thread that owns
+// the OpenGL context, because they make OpenGL calls directly.
+
 struct GlyphInfo {
     float u0 = 0, v0 = 0; // top-left UV
     float u1 = 0, v1 = 0; // bottom-right UV

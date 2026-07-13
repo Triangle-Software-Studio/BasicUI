@@ -7,14 +7,14 @@ namespace bui {
 void CheckBox::OnRender(TextGrid& grid) {
     if (!visible_) return;
     std::string display = (checked_ ? "[x] " : "[ ] ") + label_;
-    if (static_cast<int>(display.size()) > bounds_.w) {
-        display = display.substr(0, bounds_.w);
+    if (static_cast<int>(TextGrid::Utf8CharCount(display)) > bounds_.w) {
+        display = TextGrid::Utf8Substr(display, 0, bounds_.w);
     }
     grid.PutString(bounds_.x, bounds_.y, display, fgColor_, bgColor_);
 }
 
 Point CheckBox::GetPreferredSize() const {
-    return {static_cast<int>(label_.size()) + 4, 1};
+    return {static_cast<int>(TextGrid::Utf8CharCount(label_)) + 4, 1};
 }
 
 void CheckBox::OnEvent(const Event& ev) {

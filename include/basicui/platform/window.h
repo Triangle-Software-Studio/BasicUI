@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <vector>
 #include "basicui/basicui.h"
 #include "basicui/platform/event.h"
 
@@ -63,6 +64,7 @@ private:
     int pixelWidth_ = 0;
     int pixelHeight_ = 0;
     ResizeCallback onResize_;
+    std::vector<Event> pendingEvents_;
 };
 
 } // namespace bui

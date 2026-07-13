@@ -8,19 +8,18 @@ namespace bui {
 
 class RadioButton : public Widget {
 public:
-    RadioButton(const std::string& label = "") : label_(label) {
-        focusable_ = true;
-    }
+    RadioButton(const std::string& label = "");
+    ~RadioButton();
 
     void SetLabel(const std::string& label) { label_ = label; }
     const std::string& GetLabel() const { return label_; }
     RadioButton& Label(const std::string& label) { label_ = label; return *this; }
 
-    RadioButton& SetChecked(bool checked) { checked_ = checked; return *this; }
+    RadioButton& SetChecked(bool checked);
     bool IsChecked() const { return checked_; }
     RadioButton& Checked(bool checked) { return SetChecked(checked); }
 
-    RadioButton& SetGroup(const std::string& group) { group_ = group; return *this; }
+    RadioButton& SetGroup(const std::string& group);
     const std::string& GetGroup() const { return group_; }
     RadioButton& Group(const std::string& group) { return SetGroup(group); }
 

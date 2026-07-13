@@ -16,9 +16,10 @@ void Tooltip::SetText(const std::string& text) {
 }
 
 Point Tooltip::GetPreferredSize() const {
-    int w = std::min(maxWidth_, static_cast<int>(text_.size()));
+    int charCount = static_cast<int>(TextGrid::Utf8CharCount(text_));
+    int w = std::min(maxWidth_, charCount);
     if (w <= 0) w = 1;
-    int lines = (static_cast<int>(text_.size()) + w - 1) / w;
+    int lines = (charCount + w - 1) / w;
     return {w + 2, lines + 2};
 }
 

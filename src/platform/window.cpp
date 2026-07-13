@@ -4,6 +4,7 @@
 #include <SDL_syswm.h>
 #include <dwmapi.h>
 #include <stdexcept>
+#include <climits>
 
 namespace bui {
 
@@ -97,6 +98,12 @@ void Window::SetTitle(const std::string& title) {
 }
 
 bool Window::PollEvent(Event& out) {
+    if (!pendingEvents_.empty()) {
+        out = pendingEvents_.front();
+        pendingEvents_.erase(pendingEvents_.begin());
+        return true;
+    }
+
     SDL_Event e;
     if (!SDL_PollEvent(&e)) {
         return false;
@@ -242,23 +249,42 @@ bool Window::PollEvent(Event& out) {
         }
 
         case SDL_TEXTINPUT: {
-            Event evt;
-            evt.type = EventType::KeyPress;
-            evt.key.key = KeyCode::Unknown;
-            evt.key.modifiers = 0;
-            evt.key.text = 0;
-            // Decode first UTF-8 codepoint
+            pendingEvents_.clear();
             const char* p = e.text.text;
-            char32_t cp = 0;
-            if (p[0]) {
-                unsigned char c0 = static_cast<unsigned char>(p[0]);
-                if (c0 < 0x80) cp = c0;
-                else if ((c0 & 0xE0) == 0xC0 && (p[1] & 0xC0) == 0x80) cp = ((c0 & 0x1F) << 6) | (p[1] & 0x3F);
-                else if ((c0 & 0xF0) == 0xE0 && (p[1] & 0xC0) == 0x80 && (p[2] & 0xC0) == 0x80) cp = ((c0 & 0x0F) << 12) | ((p[1] & 0x3F) << 6) | (p[2] & 0x3F);
-                else if ((c0 & 0xF8) == 0xF0 && (p[1] & 0xC0) == 0x80 && (p[2] & 0xC0) == 0x80 && (p[3] & 0xC0) == 0x80) cp = ((c0 & 0x07) << 18) | ((p[1] & 0x3F) << 12) | ((p[2] & 0x3F) << 6) | (p[3] & 0x3F);
+            while (*p) {
+                char32_t cp = 0;
+                size_t step = 1;
+                unsigned char c0 = static_cast<unsigned char>(*p);
+                if (c0 < 0x80) {
+                    cp = c0;
+                    step = 1;
+                } else if ((c0 & 0xE0) == 0xC0 && (static_cast<unsigned char>(p[1]) & 0xC0) == 0x80) {
+                    cp = ((c0 & 0x1F) << 6) | (static_cast<unsigned char>(p[1]) & 0x3F);
+                    step = 2;
+                } else if ((c0 & 0xF0) == 0xE0 && (static_cast<unsigned char>(p[1]) & 0xC0) == 0x80 && (static_cast<unsigned char>(p[2]) & 0xC0) == 0x80) {
+                    cp = ((c0 & 0x0F) << 12) | ((static_cast<unsigned char>(p[1]) & 0x3F) << 6) | (static_cast<unsigned char>(p[2]) & 0x3F);
+                    step = 3;
+                } else if ((c0 & 0xF8) == 0xF0 && (static_cast<unsigned char>(p[1]) & 0xC0) == 0x80 && (static_cast<unsigned char>(p[2]) & 0xC0) == 0x80 && (static_cast<unsigned char>(p[3]) & 0xC0) == 0x80) {
+                    cp = ((c0 & 0x07) << 18) | ((static_cast<unsigned char>(p[1]) & 0x3F) << 12) | ((static_cast<unsigned char>(p[2]) & 0x3F) << 6) | (static_cast<unsigned char>(p[3]) & 0x3F);
+                    step = 4;
+                } else {
+                    cp = c0;
+                    step = 1;
+                }
+                Event evt;
+                evt.type = EventType::KeyPress;
+                evt.key.key = KeyCode::Unknown;
+                evt.key.modifiers = 0;
+                evt.key.text = cp;
+                pendingEvents_.push_back(evt);
+                p += step;
             }
-            evt.key.text = cp;
-            out = evt;
+            if (!pendingEvents_.empty()) {
+                out = pendingEvents_.front();
+                pendingEvents_.erase(pendingEvents_.begin());
+                return true;
+            }
+            out = Event(EventType::Unknown);
             return true;
         }
 
@@ -294,6 +320,8 @@ void Window::SetCellSize(int w, int h) {
 
 void Window::ResizeToCells(int cols, int rows) {
     if (cols <= 0 || rows <= 0 || cellWidth_ <= 0 || cellHeight_ <= 0) return;
+    if (cols > INT_MAX / cellWidth_) return;
+    if (rows > INT_MAX / cellHeight_) return;
     cols_ = cols;
     rows_ = rows;
     pixelWidth_ = cols_ * cellWidth_;

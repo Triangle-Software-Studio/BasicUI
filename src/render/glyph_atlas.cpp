@@ -287,6 +287,7 @@ void GlyphAtlas::PackTexture() {
 
             textureWidth_ = texSize;
             textureHeight_ = texSize;
+            staging_.clear();
             return;
         }
 

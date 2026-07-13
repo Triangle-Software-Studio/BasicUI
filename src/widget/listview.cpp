@@ -50,8 +50,8 @@ void ListView::OnRender(TextGrid& grid) {
         Color fg = (itemIdx == selectedIndex_) ? Theme::SelectionFg : fgColor_;
 
         std::string display = item;
-        if (static_cast<int>(display.size()) > w) {
-            display = display.substr(0, w);
+        if (static_cast<int>(TextGrid::Utf8CharCount(display)) > w) {
+            display = TextGrid::Utf8Substr(display, 0, w);
         }
 
         grid.FillRect({x, y + row, w, 1}, ' ', fg, bg);
@@ -62,7 +62,7 @@ void ListView::OnRender(TextGrid& grid) {
 Point ListView::GetPreferredSize() const {
     int maxLen = 0;
     for (const auto& item : items_) {
-        if (static_cast<int>(item.size()) > maxLen) maxLen = static_cast<int>(item.size());
+        if (static_cast<int>(TextGrid::Utf8CharCount(item)) > maxLen) maxLen = static_cast<int>(TextGrid::Utf8CharCount(item));
     }
     int h = static_cast<int>(items_.size());
     if (bounds_.h > 0 && h > bounds_.h) h = bounds_.h;

@@ -320,6 +320,18 @@ A: Inherit from `bui::Widget`, override `OnRender(TextGrid&)` to draw your cells
 
 ---
 
+## Changelog
+
+### 2025-07-13 — Bug Fixes & Hardening
+- **MenuBar**: Fixed potential out-of-bounds access in `MouseMove` when `activeMenu_` exceeds menu count. Empty menus now correctly return zero-size dropdown bounds.
+- **Text Input**: `Window::PollEvent` now queues multi-character `SDL_TEXTINPUT` events instead of discarding characters after the first UTF-8 codepoint.
+- **Unicode Truncation**: `ListView`, `CheckBox`, `ProgressBar`, `Tooltip`, `Panel`, and `MenuBar` now use UTF-8 aware `Utf8CharCount` / `Utf8Substr` instead of byte-length `std::string::size()` / `substr()`, preventing mid-character truncation of CJK and other multi-byte text.
+- **RadioButton**: Added automatic mutual exclusion within the same group. Selecting one radio button now unchecks all others in the group and fires their `onToggle(false)` callbacks.
+- **Window Resize**: `ResizeToCells` now guards against `int` multiplication overflow before calling `SDL_SetWindowSize`.
+- **Thread Safety Note**: Added documentation to `GlyphAtlas` clarifying that all operations must occur on the thread owning the OpenGL context.
+
+---
+
 ## License
 
 [MIT License](LICENSE.txt)

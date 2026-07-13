@@ -16,16 +16,17 @@ void MenuBar::GetDropDownBounds(int& outX, int& outY, int& outW, int& outH) cons
     if (activeMenu_ < 0 || activeMenu_ >= static_cast<int>(menus_.size())) return;
 
     const auto& menu = menus_[activeMenu_];
+    if (menu.items.empty()) { outW = 0; outH = 0; return; }
     int maxLen = 0;
     for (const auto& item : menu.items) {
-        if (static_cast<int>(item.label.size()) > maxLen) maxLen = static_cast<int>(item.label.size());
+        if (static_cast<int>(TextGrid::Utf8CharCount(item.label)) > maxLen) maxLen = static_cast<int>(TextGrid::Utf8CharCount(item.label));
     }
     outW = maxLen + 2;
     outH = static_cast<int>(menu.items.size()) + 2;
 
     outX = bounds_.x;
     for (int i = 0; i < activeMenu_; ++i) {
-        outX += static_cast<int>(menus_[i].title.size()) + 3;
+        outX += static_cast<int>(TextGrid::Utf8CharCount(menus_[i].title)) + 3;
     }
     outY = bounds_.y + 1;
 
@@ -58,10 +59,10 @@ void MenuBar::OnRender(TextGrid& grid) {
 
     for (size_t i = 0; i < menus_.size(); ++i) {
         std::string label = "[" + menus_[i].title + "]";
-        if (x + static_cast<int>(label.size()) > bounds_.x + bounds_.w) break;
+        if (x + static_cast<int>(TextGrid::Utf8CharCount(label)) > bounds_.x + bounds_.w) break;
         Color bg = (static_cast<int>(i) == hoveredMenu_) ? Theme::MenuHighlightBg : Theme::MenuBarBg;
         grid.PutString(x, y, label, Theme::DefaultFg, bg);
-        x += static_cast<int>(label.size()) + 1;
+        x += static_cast<int>(TextGrid::Utf8CharCount(label)) + 1;
     }
 }
 
@@ -79,8 +80,8 @@ void MenuBar::OnRenderOverlay(TextGrid& grid) {
             if (itemY >= dropY + dropH - 1) break;
             Color bg = (static_cast<int>(i) == hoveredItem_) ? Theme::MenuHighlightBg : Theme::MenuBarBg;
             std::string label = " " + menus_[activeMenu_].items[i].label;
-            if (static_cast<int>(label.size()) > dropW - 2) {
-                label = label.substr(0, dropW - 2);
+            if (static_cast<int>(TextGrid::Utf8CharCount(label)) > dropW - 2) {
+                label = TextGrid::Utf8Substr(label, 0, dropW - 2);
             }
             grid.PutString(dropX + 1, itemY, label, Theme::DefaultFg, bg);
         }
@@ -90,7 +91,7 @@ void MenuBar::OnRenderOverlay(TextGrid& grid) {
 Point MenuBar::GetPreferredSize() const {
     int totalWidth = 0;
     for (size_t i = 0; i < menus_.size(); ++i) {
-        totalWidth += static_cast<int>(menus_[i].title.size()) + 3;
+        totalWidth += static_cast<int>(TextGrid::Utf8CharCount(menus_[i].title)) + 3;
     }
     if (!menus_.empty()) totalWidth -= 1;
     return {totalWidth, 1};
@@ -102,7 +103,7 @@ void MenuBar::OnEvent(const Event& ev) {
     case EventType::MouseDown: {
         int x = bounds_.x;
         for (size_t i = 0; i < menus_.size(); ++i) {
-            int titleWidth = static_cast<int>(menus_[i].title.size()) + 2;
+            int titleWidth = static_cast<int>(TextGrid::Utf8CharCount(menus_[i].title)) + 2;
             if (ev.mouse.x >= x && ev.mouse.x < x + titleWidth && ev.mouse.y == bounds_.y) {
                 activeMenu_ = (activeMenu_ == static_cast<int>(i)) ? -1 : static_cast<int>(i);
                 hoveredMenu_ = static_cast<int>(i);
@@ -114,7 +115,7 @@ void MenuBar::OnEvent(const Event& ev) {
         break;
     }
     case EventType::MouseMove: {
-        if (activeMenu_ >= 0) {
+        if (activeMenu_ >= 0 && activeMenu_ < static_cast<int>(menus_.size())) {
             int dropX, dropY, dropW, dropH;
             GetDropDownBounds(dropX, dropY, dropW, dropH);
             if (dropW > 0 && dropH > 0 &&
@@ -131,7 +132,7 @@ void MenuBar::OnEvent(const Event& ev) {
             int x = bounds_.x;
             hoveredMenu_ = -1;
             for (size_t i = 0; i < menus_.size(); ++i) {
-                int titleWidth = static_cast<int>(menus_[i].title.size()) + 2;
+                int titleWidth = static_cast<int>(TextGrid::Utf8CharCount(menus_[i].title)) + 2;
                 if (ev.mouse.x >= x && ev.mouse.x < x + titleWidth && ev.mouse.y == bounds_.y) {
                     hoveredMenu_ = static_cast<int>(i);
                     break;

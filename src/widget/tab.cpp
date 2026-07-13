@@ -113,10 +113,12 @@ void TabControl::OnEvent(const Event& ev) {
 
     if (ev.type == EventType::MouseDown) {
         Rect tabBar = TabBarRect();
-        if (tabBar.Contains(ev.mouse.x, ev.mouse.y)) {
+        if (tabBar.Contains(ev.mouse.x, ev.mouse.y) && !tabs_.empty()) {
             int tw = TabWidth();
-            int idx = (ev.mouse.x - tabBar.x) / tw;
-            SetSelectedIndex(idx);
+            if (tw > 0) {
+                int idx = (ev.mouse.x - tabBar.x) / tw;
+                SetSelectedIndex(idx);
+            }
         } else {
             // Forward to visible content panel
             if (selectedIndex_ >= 0 && selectedIndex_ < static_cast<int>(tabs_.size())) {
