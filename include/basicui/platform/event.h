@@ -59,8 +59,8 @@ struct Event {
         ResizeEvent resize;
     };
 
-    Event() {}
-    explicit Event(EventType t) : type(t) {}
+    Event() : type(EventType::Unknown) { key = {}; }
+    explicit Event(EventType t) : type(t) { key = {}; }
     static Event Key(EventType t, KeyCode k, int mod = 0, char32_t txt = 0) {
         Event e;
         e.type = t;

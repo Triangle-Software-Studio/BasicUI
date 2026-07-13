@@ -384,7 +384,7 @@ void Renderer::DrawTitleBar(const std::string& title, int cols, bool active, int
     if (!impl_->atlas) return;
 
     Color bg = active ? Theme::TitleBarActive : Theme::TitleBarInactive;
-    Color fg = active ? Theme::DefaultFg : Theme::DefaultFg;
+    Color fg = active ? Theme::DefaultFg : MakeColor(128, 128, 128, 255);
 
     const GlyphInfo* spaceGlyph = impl_->atlas->GetGlyph(' ');
     if (!spaceGlyph) return;
@@ -413,14 +413,20 @@ void Renderer::DrawTitleBar(const std::string& title, int cols, bool active, int
     }
 
     int startX = 1;
-    for (size_t i = 0; i < title.size() && startX + static_cast<int>(i) < cols - 1; ++i) {
-        char32_t cp = static_cast<unsigned char>(title[i]);
+    int cx = startX;
+    const char* p = title.c_str();
+    while (*p && cx < cols - 1) {
+        char32_t cp = 0;
+        size_t len = TextGrid::Utf8DecodeOne(p, cp);
+        if (len == 0) break;
+        int w = TextGrid::CharWidth(cp);
+        if (cx + w > cols - 1) break;
         const GlyphInfo* glyph = impl_->atlas->GetGlyph(cp);
         if (!glyph) glyph = impl_->atlas->GetGlyph(' ');
-        if (!glyph) continue;
+        if (!glyph) { p += len; cx += w; continue; }
 
         CellInstance inst;
-        inst.colRow[0] = static_cast<float>(startX + i);
+        inst.colRow[0] = static_cast<float>(cx);
         inst.colRow[1] = 0.0f;
         inst.color[0] = ColorR(fg) / 255.0f;
         inst.color[1] = ColorG(fg) / 255.0f;
@@ -439,6 +445,8 @@ void Renderer::DrawTitleBar(const std::string& title, int cols, bool active, int
         inst.glyphOffset[0] = 0.0f;
         inst.glyphOffset[1] = 0.0f;
         impl_->decoInstances.push_back(inst);
+        p += len;
+        cx += w;
     }
 }
 

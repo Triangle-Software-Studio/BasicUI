@@ -59,7 +59,10 @@ void Input::OnEvent(const Event& ev) {
     case EventType::KeyPress: {
         if (!focused_) return;
         auto k = ev.key.key;
-        if (IsPrintable(k)) {
+        if (k == KeyCode::Unknown && ev.key.text != 0) {
+            // Text input from SDL_TEXTINPUT
+            InsertChar(ev.key.text);
+        } else if (IsPrintable(k)) {
             std::string str(1, static_cast<char>(k));
             InsertText(str);
         } else if (k == KeyCode::Backspace) {
@@ -99,23 +102,66 @@ void Input::InsertText(const std::string& str) {
     if (onChange_) onChange_(text_);
 }
 
+void Input::InsertChar(char32_t ch) {
+    if (ch < 0x80) {
+        std::string str(1, static_cast<char>(ch));
+        InsertText(str);
+    } else if (ch < 0x800) {
+        std::string str;
+        str += static_cast<char>(0xC0 | (ch >> 6));
+        str += static_cast<char>(0x80 | (ch & 0x3F));
+        InsertText(str);
+    } else if (ch < 0x10000) {
+        std::string str;
+        str += static_cast<char>(0xE0 | (ch >> 12));
+        str += static_cast<char>(0x80 | ((ch >> 6) & 0x3F));
+        str += static_cast<char>(0x80 | (ch & 0x3F));
+        InsertText(str);
+    } else {
+        std::string str;
+        str += static_cast<char>(0xF0 | (ch >> 18));
+        str += static_cast<char>(0x80 | ((ch >> 12) & 0x3F));
+        str += static_cast<char>(0x80 | ((ch >> 6) & 0x3F));
+        str += static_cast<char>(0x80 | (ch & 0x3F));
+        InsertText(str);
+    }
+}
+
 void Input::DeleteBackward() {
     if (cursorPos_ > 0) {
-        text_.erase(cursorPos_ - 1, 1);
-        --cursorPos_;
-        if (onChange_) onChange_(text_);
+        int prev = cursorPos_;
+        while (prev > 0 && (static_cast<unsigned char>(text_[prev - 1]) & 0xC0) == 0x80) --prev;
+        if (prev < cursorPos_) {
+            text_.erase(prev, cursorPos_ - prev);
+            cursorPos_ = prev;
+            if (onChange_) onChange_(text_);
+        }
     }
 }
 
 void Input::DeleteForward() {
     if (cursorPos_ < static_cast<int>(text_.size())) {
-        text_.erase(cursorPos_, 1);
+        int next = cursorPos_ + 1;
+        while (next < static_cast<int>(text_.size()) && (static_cast<unsigned char>(text_[next]) & 0xC0) == 0x80) ++next;
+        text_.erase(cursorPos_, next - cursorPos_);
         if (onChange_) onChange_(text_);
     }
 }
 
 void Input::MoveCursor(int delta) {
-    cursorPos_ += delta;
+    if (delta < 0) {
+        while (delta < 0 && cursorPos_ > 0) {
+            --cursorPos_;
+            while (cursorPos_ > 0 && (static_cast<unsigned char>(text_[cursorPos_]) & 0xC0) == 0x80) --cursorPos_;
+            ++delta;
+        }
+    } else if (delta > 0) {
+        while (delta > 0 && cursorPos_ < static_cast<int>(text_.size())) {
+            ++cursorPos_;
+            while (cursorPos_ < static_cast<int>(text_.size()) && (static_cast<unsigned char>(text_[cursorPos_]) & 0xC0) == 0x80) ++cursorPos_;
+            --delta;
+        }
+    }
     if (cursorPos_ < 0) cursorPos_ = 0;
     if (cursorPos_ > static_cast<int>(text_.size())) cursorPos_ = static_cast<int>(text_.size());
 }

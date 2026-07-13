@@ -2,6 +2,7 @@
 #include "basicui/render/text_grid.h"
 #include "basicui/style/theme.h"
 #include <algorithm>
+#include <SDL.h>
 
 namespace bui {
 
@@ -96,31 +97,36 @@ TooltipManager& TooltipManager::Instance() {
 
 void TooltipManager::Register(std::shared_ptr<Widget> widget, const std::string& text) {
     if (!widget) return;
-    tips_[widget.get()] = text;
+    tips_.push_back({widget, text});
 }
 
 void TooltipManager::Unregister(std::shared_ptr<Widget> widget) {
     if (!widget) return;
-    tips_.erase(widget.get());
+    tips_.erase(std::remove_if(tips_.begin(), tips_.end(), [&](const auto& pair) {
+        if (auto sp = pair.first.lock()) return sp.get() == widget.get();
+        return true; // clean up expired entries
+    }), tips_.end());
 }
 
 void TooltipManager::OnHover(std::shared_ptr<Widget> widget, int x, int y) {
-    if (!widget) {
-        Hide();
-        return;
-    }
-    auto it = tips_.find(widget.get());
-    if (it == tips_.end()) {
-        Hide();
-        return;
-    }
+    tips_.erase(std::remove_if(tips_.begin(), tips_.end(), [](const auto& pair) { return pair.first.expired(); }), tips_.end());
+    if (!widget) { Hide(); return; }
+    auto it = std::find_if(tips_.begin(), tips_.end(), [&](const auto& pair) {
+        if (auto sp = pair.first.lock()) return sp.get() == widget.get();
+        return false;
+    });
+    if (it == tips_.end()) { Hide(); return; }
     if (auto t = activeTarget_.lock(); t == widget) {
-        return;
+        return; // already hovering same target
     }
     activeTarget_ = widget;
+    hoverStartTime_ = SDL_GetTicks();
+    hoverX_ = x;
+    hoverY_ = y;
     if (!activeTip_) activeTip_ = std::make_shared<Tooltip>();
     activeTip_->SetText(it->second);
-    activeTip_->ShowAt(x + 1, y + 1, 40);
+    activeTip_->SetVisible(false); // don't show yet
+    activeTip_->shown_ = false;
 }
 
 void TooltipManager::Hide() {
@@ -129,7 +135,21 @@ void TooltipManager::Hide() {
 }
 
 void TooltipManager::RenderOverlay(TextGrid& grid) {
-    if (activeTip_) activeTip_->RenderOverlay(grid);
+    if (!activeTip_) return;
+    if (auto t = activeTarget_.lock()) {
+        if (activeTip_->GetDelayMs() > 0) {
+            uint32_t elapsed = SDL_GetTicks() - hoverStartTime_;
+            if (elapsed < static_cast<uint32_t>(activeTip_->GetDelayMs())) {
+                return; // still within delay
+            }
+        }
+        if (!activeTip_->shown_) {
+            activeTip_->ShowAt(hoverX_ + 1, hoverY_ + 1, 40);
+        }
+        activeTip_->RenderOverlay(grid);
+    } else {
+        Hide();
+    }
 }
 
 } // namespace bui

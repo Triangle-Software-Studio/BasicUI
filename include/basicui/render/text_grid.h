@@ -55,6 +55,12 @@ public:
     void PushFont(const std::string& name);
     void PopFont();
 
+    // UTF-8 helpers
+    static size_t Utf8CharCount(const std::string& str);
+    static std::string Utf8Substr(const std::string& str, size_t start, size_t len);
+    static int CharWidth(char32_t ch);
+    static size_t Utf8DecodeOne(const char* str, char32_t& out);
+
 private:
     int width_ = 0;
     int height_ = 0;

@@ -31,8 +31,13 @@ bool Shader::Load(const std::string& vertexSrc, const std::string& fragmentSrc) 
     int success = 0;
     glGetProgramiv(program_, GL_LINK_STATUS, &success);
     if (!success) {
-        char log[512];
-        glGetProgramInfoLog(program_, 512, nullptr, log);
+        int logLen = 0;
+        glGetProgramiv(program_, GL_INFO_LOG_LENGTH, &logLen);
+        std::string log;
+        if (logLen > 0) {
+            log.resize(logLen);
+            glGetProgramInfoLog(program_, logLen, nullptr, &log[0]);
+        }
         std::cerr << "Shader link error: " << log << "\n";
         glDeleteProgram(program_);
         program_ = 0;
@@ -91,8 +96,13 @@ bool Shader::Compile(unsigned int& shader, const std::string& src, unsigned int 
     int success = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        char log[512];
-        glGetShaderInfoLog(shader, 512, nullptr, log);
+        int logLen = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
+        std::string log;
+        if (logLen > 0) {
+            log.resize(logLen);
+            glGetShaderInfoLog(shader, logLen, nullptr, &log[0]);
+        }
         std::cerr << "Shader compile error: " << log << "\n";
         glDeleteShader(shader);
         shader = 0;

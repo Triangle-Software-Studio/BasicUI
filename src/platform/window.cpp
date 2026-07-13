@@ -72,7 +72,6 @@ Window::~Window() {
     if (window_) {
         SDL_DestroyWindow(window_);
     }
-    SDL_Quit();
 }
 
 bool Window::IsOpen() const {
@@ -239,6 +238,27 @@ bool Window::PollEvent(Event& out) {
             int cx = mx / cellWidth_;
             int cy = my / cellHeight_;
             out = Event::Mouse(EventType::MouseWheel, cx, cy, 0, e.wheel.y);
+            return true;
+        }
+
+        case SDL_TEXTINPUT: {
+            Event evt;
+            evt.type = EventType::KeyPress;
+            evt.key.key = KeyCode::Unknown;
+            evt.key.modifiers = 0;
+            evt.key.text = 0;
+            // Decode first UTF-8 codepoint
+            const char* p = e.text.text;
+            char32_t cp = 0;
+            if (p[0]) {
+                unsigned char c0 = static_cast<unsigned char>(p[0]);
+                if (c0 < 0x80) cp = c0;
+                else if ((c0 & 0xE0) == 0xC0 && (p[1] & 0xC0) == 0x80) cp = ((c0 & 0x1F) << 6) | (p[1] & 0x3F);
+                else if ((c0 & 0xF0) == 0xE0 && (p[1] & 0xC0) == 0x80 && (p[2] & 0xC0) == 0x80) cp = ((c0 & 0x0F) << 12) | ((p[1] & 0x3F) << 6) | (p[2] & 0x3F);
+                else if ((c0 & 0xF8) == 0xF0 && (p[1] & 0xC0) == 0x80 && (p[2] & 0xC0) == 0x80 && (p[3] & 0xC0) == 0x80) cp = ((c0 & 0x07) << 18) | ((p[1] & 0x3F) << 12) | ((p[2] & 0x3F) << 6) | (p[3] & 0x3F);
+            }
+            evt.key.text = cp;
+            out = evt;
             return true;
         }
 

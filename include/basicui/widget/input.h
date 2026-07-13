@@ -34,6 +34,7 @@ public:
 
 private:
     void InsertText(const std::string& str);
+    void InsertChar(char32_t ch);
     void DeleteBackward();
     void DeleteForward();
     void MoveCursor(int delta);

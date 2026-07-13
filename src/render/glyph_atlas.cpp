@@ -9,23 +9,6 @@
 
 namespace bui {
 
-namespace {
-    struct Bitmap {
-        int width = 0;
-        int height = 0;
-        std::vector<uint8_t> data;
-    };
-
-    struct StagedGlyph {
-        Bitmap bitmap;
-        int bearingX = 0;
-        int bearingY = 0;
-        int advance = 0;
-    };
-
-    std::unordered_map<const GlyphAtlas*, std::unordered_map<char32_t, StagedGlyph>> g_staging;
-}
-
 GlyphAtlas::GlyphAtlas() {}
 
 GlyphAtlas::~GlyphAtlas() {
@@ -45,7 +28,7 @@ void GlyphAtlas::Reset() {
         FT_Done_FreeType(reinterpret_cast<FT_Library>(ftLibrary_));
         ftLibrary_ = nullptr;
     }
-    g_staging.erase(this);
+    staging_.clear();
     glyphs_.clear();
     pending_.clear();
     pixelHeight_ = 0;
@@ -98,7 +81,7 @@ bool GlyphAtlas::LoadFont(const std::string& fontPath, int pixelHeight) {
     }
 
     PackTexture();
-    g_staging.erase(this);
+    staging_.clear();
     return textureId_ != 0;
 }
 
@@ -145,13 +128,20 @@ bool GlyphAtlas::LoadFontFromMemory(const std::vector<uint8_t>& data, int pixelH
     }
 
     PackTexture();
-    g_staging.erase(this);
+    staging_.clear();
     return textureId_ != 0;
 }
 
-const GlyphInfo* GlyphAtlas::GetGlyph(char32_t codepoint) const {
+const GlyphInfo* GlyphAtlas::GetGlyph(char32_t codepoint) {
     auto it = glyphs_.find(codepoint);
     if (it != glyphs_.end()) return &it->second;
+    // Try to rasterize on demand
+    GlyphInfo info;
+    if (RasterizeGlyph(codepoint, info)) {
+        PackTexture();
+        it = glyphs_.find(codepoint);
+        if (it != glyphs_.end()) return &it->second;
+    }
     return nullptr;
 }
 
@@ -198,16 +188,15 @@ bool GlyphAtlas::RasterizeGlyph(char32_t codepoint, GlyphInfo& out) {
     staged.bearingX = out.bearingX;
     staged.bearingY = out.bearingY;
     staged.advance = out.advance;
-    g_staging[this][codepoint] = std::move(staged);
+    staging_[codepoint] = std::move(staged);
     return true;
 }
 
 void GlyphAtlas::PackTexture() {
-    auto it = g_staging.find(this);
-    if (it == g_staging.end() || it->second.empty()) return;
+    if (staging_.empty()) return;
 
     int texSize = 512;
-    auto& staging = it->second;
+    auto& staging = staging_;
 
     // Sort glyphs by height descending for better packing density.
     std::vector<std::pair<char32_t, StagedGlyph*>> sorted;

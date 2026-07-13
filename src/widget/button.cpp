@@ -24,15 +24,15 @@ void Button::OnRender(TextGrid& grid) {
     if (bounds_.w > 4) {
         int maxLabel = bounds_.w - 4;
         std::string display = label_;
-        if (static_cast<int>(display.size()) > maxLabel) {
-            display = display.substr(0, maxLabel);
+        if (static_cast<int>(TextGrid::Utf8CharCount(display)) > maxLabel) {
+            display = TextGrid::Utf8Substr(display, 0, maxLabel);
         }
         grid.PutString(bounds_.x + 2, labelY, display, fgColor_, bg);
     }
 }
 
 Point Button::GetPreferredSize() const {
-    return {static_cast<int>(label_.size()) + 4, 3};
+    return {static_cast<int>(TextGrid::Utf8CharCount(label_)) + 4, 3};
 }
 
 void Button::OnEvent(const Event& ev) {

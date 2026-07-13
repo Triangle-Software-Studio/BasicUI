@@ -35,12 +35,6 @@ void ProgressBar::OnRender(TextGrid& grid) {
     int fill = static_cast<int>(ratio * w);
     if (fill > w) fill = w;
 
-    std::string bar;
-    for (int i = 0; i < w; ++i) {
-        if (i < fill) bar += '=';
-        else bar += '-';
-    }
-
     Color fillColor = Theme::SelectionBg;
     Color emptyColor = Theme::DefaultBg;
 

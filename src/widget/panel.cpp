@@ -50,11 +50,6 @@ void Panel::OnRender(TextGrid& grid) {
         if (static_cast<int>(display.size()) > maxLen) display = display.substr(0, maxLen);
         grid.PutString(titleX, bounds_.y, display, fgColor_, bgColor_);
     }
-    for (const auto& child : children_) {
-        if (child->IsVisible()) {
-            child->Render(grid);
-        }
-    }
 }
 
 Point Panel::GetPreferredSize() const {

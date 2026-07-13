@@ -38,18 +38,21 @@ void TextGrid::Put(int x, int y, char32_t ch, Color fg, Color bg, uint8_t flags)
     c.font = currentFont_;
 }
 
-static size_t Utf8Decode(const char* str, char32_t& out) {
+size_t TextGrid::Utf8DecodeOne(const char* str, char32_t& out) {
     unsigned char c = static_cast<unsigned char>(str[0]);
     if (c < 0x80) {
         out = c;
         return 1;
     } else if ((c & 0xE0) == 0xC0) {
+        if ((static_cast<unsigned char>(str[1]) & 0xC0) != 0x80) { out = c; return 1; }
         out = ((c & 0x1F) << 6) | (static_cast<unsigned char>(str[1]) & 0x3F);
         return 2;
     } else if ((c & 0xF0) == 0xE0) {
+        if ((static_cast<unsigned char>(str[1]) & 0xC0) != 0x80 || (static_cast<unsigned char>(str[2]) & 0xC0) != 0x80) { out = c; return 1; }
         out = ((c & 0x0F) << 12) | ((static_cast<unsigned char>(str[1]) & 0x3F) << 6) | (static_cast<unsigned char>(str[2]) & 0x3F);
         return 3;
     } else if ((c & 0xF8) == 0xF0) {
+        if ((static_cast<unsigned char>(str[1]) & 0xC0) != 0x80 || (static_cast<unsigned char>(str[2]) & 0xC0) != 0x80 || (static_cast<unsigned char>(str[3]) & 0xC0) != 0x80) { out = c; return 1; }
         out = ((c & 0x07) << 18) | ((static_cast<unsigned char>(str[1]) & 0x3F) << 12) | ((static_cast<unsigned char>(str[2]) & 0x3F) << 6) | (static_cast<unsigned char>(str[3]) & 0x3F);
         return 4;
     }
@@ -57,16 +60,63 @@ static size_t Utf8Decode(const char* str, char32_t& out) {
     return 1;
 }
 
+int TextGrid::CharWidth(char32_t ch) {
+    if (ch < 0x20 || ch == 0x7F) return 0;
+    if ((ch >= 0x4E00 && ch <= 0x9FFF) ||
+        (ch >= 0x3400 && ch <= 0x4DBF) ||
+        (ch >= 0xF900 && ch <= 0xFAFF) ||
+        (ch >= 0xAC00 && ch <= 0xD7AF) ||
+        (ch >= 0x2E80 && ch <= 0xA4CF) ||
+        (ch >= 0xFE30 && ch <= 0xFE6F) ||
+        (ch >= 0xFF00 && ch <= 0xFF60) ||
+        (ch >= 0xFFE0 && ch <= 0xFFE6)) {
+        return 2;
+    }
+    return 1;
+}
+
+size_t TextGrid::Utf8CharCount(const std::string& str) {
+    size_t count = 0;
+    const char* p = str.c_str();
+    while (*p) {
+        char32_t ch = 0;
+        size_t len = Utf8DecodeOne(p, ch);
+        ++count;
+        p += len;
+    }
+    return count;
+}
+
+std::string TextGrid::Utf8Substr(const std::string& str, size_t start, size_t len) {
+    const char* p = str.c_str();
+    size_t idx = 0;
+    while (*p && idx < start) {
+        char32_t ch = 0;
+        size_t l = Utf8DecodeOne(p, ch);
+        p += l;
+        ++idx;
+    }
+    const char* startPtr = p;
+    idx = 0;
+    while (*p && idx < len) {
+        char32_t ch = 0;
+        size_t l = Utf8DecodeOne(p, ch);
+        p += l;
+        ++idx;
+    }
+    return std::string(startPtr, p - startPtr);
+}
+
 void TextGrid::PutString(int x, int y, const std::string& str, Color fg, Color bg, uint8_t flags) {
     int cx = x;
     const char* p = str.c_str();
     while (*p) {
         char32_t ch = 0;
-        size_t len = Utf8Decode(p, ch);
+        size_t len = Utf8DecodeOne(p, ch);
         if (cx < width_ && y >= 0 && y < height_) {
             Put(cx, y, ch, fg, bg, flags);
         }
-        cx++;
+        cx += CharWidth(ch);
         p += len;
     }
 }
@@ -77,7 +127,7 @@ void TextGrid::PutString(int x, int y, const std::u32string& str, Color fg, Colo
         if (cx < width_ && y >= 0 && y < height_) {
             Put(cx, y, ch, fg, bg, flags);
         }
-        cx++;
+        cx += CharWidth(ch);
     }
 }
 
@@ -143,7 +193,7 @@ void TextGrid::DrawBox(const Rect& rect, Color fg, Color bg) {
 }
 
 Cell& TextGrid::At(int x, int y) {
-    static Cell dummy;
+    thread_local Cell dummy;
     if (x < 0 || x >= width_ || y < 0 || y >= height_) {
         return dummy;
     }
@@ -151,7 +201,7 @@ Cell& TextGrid::At(int x, int y) {
 }
 
 const Cell& TextGrid::At(int x, int y) const {
-    static Cell dummy;
+    thread_local Cell dummy;
     if (x < 0 || x >= width_ || y < 0 || y >= height_) {
         return dummy;
     }

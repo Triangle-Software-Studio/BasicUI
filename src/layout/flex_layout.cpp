@@ -29,15 +29,23 @@ void FlexLayout::Arrange(const Rect& bounds, const std::vector<std::shared_ptr<W
     int x = bounds.x + padLeft_;
     int y = bounds.y + padTop_;
 
+    int childIndex = 0;
     for (const auto& c : children) {
         Point p = c->GetPreferredSize();
         int sz = (direction_ == Vertical) ? p.y : p.x;
         if (sz == 0) sz = 1;
 
         if (bounded) {
-            sz = available / count;
+            int base = available / count;
+            int rem = available % count;
+            sz = base;
             if (sz < 1) sz = 1;
+            // Distribute remainder
+            if (base >= 1 && childIndex < rem) {
+                sz = base + 1;
+            }
         }
+        ++childIndex;
 
         Rect cb;
         if (direction_ == Vertical) {

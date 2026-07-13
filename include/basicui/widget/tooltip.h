@@ -2,6 +2,9 @@
 
 #include "basicui/widget/widget.h"
 #include <string>
+#include <vector>
+#include <utility>
+#include <cstdint>
 
 namespace bui {
 
@@ -31,6 +34,8 @@ private:
     int delayMs_ = 600;
     int maxWidth_ = 40;
     bool shown_ = false;
+
+    friend class TooltipManager;
 };
 
 // Optional helper: shows tooltip for any widget with a tooltip text set on it.
@@ -49,9 +54,12 @@ public:
 private:
     TooltipManager() = default;
 
-    std::unordered_map<Widget*, std::string> tips_;
+    std::vector<std::pair<std::weak_ptr<Widget>, std::string>> tips_;
     std::shared_ptr<Tooltip> activeTip_;
     std::weak_ptr<Widget> activeTarget_;
+    uint32_t hoverStartTime_ = 0;
+    int hoverX_ = 0;
+    int hoverY_ = 0;
 };
 
 } // namespace bui

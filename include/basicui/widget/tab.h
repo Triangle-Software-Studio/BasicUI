@@ -45,10 +45,8 @@ private:
 
     std::vector<TabPage> tabs_;
     int selectedIndex_ = 0;
-    bool hoverClose_ = false;
     std::function<void(int, const std::string&)> onChange_;
     Color borderColor_ = MakeColor(128, 128, 128, 255);
-    Color bgColor_ = MakeColor(12, 12, 12, 255);
 };
 
 } // namespace bui

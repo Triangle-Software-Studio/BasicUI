@@ -94,17 +94,9 @@ void TabControl::OnRender(TextGrid& grid) {
     Rect content = ContentRect();
     grid.DrawBox(content, borderColor_, bgColor_);
 
-    // Render selected tab content (children visibility controls the rest)
-    for (const auto& child : children_) {
-        if (child->IsVisible()) child->Render(grid);
-    }
 }
 
 void TabControl::OnRenderOverlay(TextGrid& grid) {
-    // Tabs themselves do not need overlay, but their children might
-    for (const auto& child : children_) {
-        if (child->IsVisible()) child->RenderOverlay(grid);
-    }
 }
 
 bool TabControl::OnHitTest(int x, int y) const {

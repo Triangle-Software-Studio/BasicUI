@@ -91,10 +91,10 @@ void ComboBox::OnRender(TextGrid& grid) {
                               ? items_[selectedIndex_]
                               : "";
     std::string text = "[" + display + "]";
-    if (static_cast<int>(text.size()) > w) {
-        text = text.substr(0, w - 1) + "]";
+    if (static_cast<int>(TextGrid::Utf8CharCount(text)) > w) {
+        text = TextGrid::Utf8Substr(text, 0, w - 1) + "]";
     }
-    int padding = w - static_cast<int>(text.size());
+    int padding = w - static_cast<int>(TextGrid::Utf8CharCount(text));
     if (padding < 0) padding = 0;
     text += std::string(padding, ' ');
     text.back() = expanded_ ? '^' : 'v';
@@ -113,10 +113,10 @@ void ComboBox::OnRenderOverlay(TextGrid& grid) {
         int rowY = bounds_.y + 1 + i;
         Color itemBg = (i == selectedIndex_) ? Theme::SelectionBg : Theme::DefaultBg;
         std::string itemText = items_[i];
-        if (static_cast<int>(itemText.size()) > w) {
-            itemText = itemText.substr(0, w);
+        if (static_cast<int>(TextGrid::Utf8CharCount(itemText)) > w) {
+            itemText = TextGrid::Utf8Substr(itemText, 0, w);
         }
-        int itemPadding = w - static_cast<int>(itemText.size());
+        int itemPadding = w - static_cast<int>(TextGrid::Utf8CharCount(itemText));
         if (itemPadding < 0) itemPadding = 0;
         itemText += std::string(itemPadding, ' ');
         grid.PutString(bounds_.x, rowY, itemText, fg, itemBg);
@@ -126,7 +126,7 @@ void ComboBox::OnRenderOverlay(TextGrid& grid) {
 Point ComboBox::GetPreferredSize() const {
     int maxLen = 10;
     for (const auto& item : items_) {
-        if (static_cast<int>(item.size()) > maxLen) maxLen = static_cast<int>(item.size());
+        if (static_cast<int>(TextGrid::Utf8CharCount(item)) > maxLen) maxLen = static_cast<int>(TextGrid::Utf8CharCount(item));
     }
     return {maxLen + 4, 1};
 }
