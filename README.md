@@ -335,4 +335,5 @@ A: Inherit from `bui::Widget`, override `OnRender(TextGrid&)` to draw your cells
 ## License
 
 [MIT License](LICENSE.txt)
+
 Note on fonts: The embedded fonts are provided under the licenses of their original publishers, and are not governed by the MIT License of this project.
